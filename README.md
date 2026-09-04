@@ -11,9 +11,10 @@ This is aimed at suspected images: when you have two figures/panels that look al
 - **Two-image upload** in a floating panel (bottom-right capsule button, dismissible with ×).
 - **Feature-point verification** — SuperPoint keypoints → descriptor matching → RANSAC homography.
 - **Robust to geometric edits** — tries the 8 dihedral (D4) orientations of image B (flip / rotate / transpose), and handles scale & non-uniform stretch.
-- **Locates the duplication** — returns three annotated images:
-  - `matches` — side-by-side keypoint correspondences (green = geometric inliers, red = outliers);
-  - `regionA` / `regionB` — the duplicated region polygon drawn on each image.
+- **Locates the duplication** — annotated images: `matches` (side-by-side keypoint correspondences, green = inliers / red = outliers), `regionA` / `regionB` (the duplicated region polygon drawn on each image).
+- **Aligned overlay** — B is warped onto A's coordinate frame; interactive **blend** (opacity slider) and **wipe** (draggable divider) views make it obvious exactly where the two overlap.
+- **Score gauge** — a bar showing geometric inliers against the threshold at a glance (达标 / 未达标).
+- **Download** — one-click PNG export of every annotated image.
 - **Interpretable verdict** — geometric inlier count vs. an adjustable threshold (default 12).
 
 ## How it works

@@ -22,7 +22,7 @@ window.__ModuleLoader__.load({
 .dd-fab-x:hover{background:var(--dsw-alias-state-error-primary);color:#fff}
 .dd-reopen{width:36px;height:36px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,.18);opacity:.65}
 .dd-reopen:hover{opacity:1;color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-brand-primary)}
-.dd-panel{width:min(700px,calc(100vw - 48px));max-height:calc(100vh - 140px);overflow:auto;background:var(--dsw-alias-bg-overlay);border:1px solid var(--dsw-alias-border-l2);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.28);padding:16px}
+.dd-panel{width:min(720px,calc(100vw - 48px));max-height:calc(100vh - 140px);overflow:auto;background:var(--dsw-alias-bg-overlay);border:1px solid var(--dsw-alias-border-l2);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.28);padding:16px}
 .dd-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .dd-panel-title{font-weight:700;font-size:15px;color:var(--dsw-alias-label-primary)}
 .dd-close{border:none;background:transparent;font-size:20px;line-height:1;cursor:pointer;color:var(--dsw-alias-label-secondary);padding:2px 10px;border-radius:6px}
@@ -51,12 +51,32 @@ window.__ModuleLoader__.load({
 .ddup-metric{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;padding:8px 6px;text-align:center}
 .ddup-metric-v{font-size:16px;font-weight:700;color:var(--dsw-alias-label-primary)}
 .ddup-metric-k{font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+.ddup-gauge{margin-top:12px}
+.ddup-gauge-track{position:relative;height:10px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);overflow:visible}
+.ddup-gauge-fill{height:100%;border-radius:999px;background:var(--dsw-alias-state-warn-primary);transition:width .3s}
+.ddup-gauge-fill.ok{background:var(--dsw-alias-state-success-primary)}
+.ddup-gauge-mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--dsw-alias-label-primary);opacity:.85}
+.ddup-gauge-caps{display:flex;justify-content:space-between;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:5px}
+.ddup-gauge-state{color:var(--dsw-alias-state-error-primary);font-weight:600}
+.ddup-gauge-state.ok{color:var(--dsw-alias-state-success-primary);font-weight:600}
+.ddup-sechead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ddup-sechead .ddup-sec{margin:14px 0 6px}
+.ddup-dl{font-size:11px;color:var(--dsw-alias-brand-primary);cursor:pointer;text-decoration:none;border:1px solid var(--dsw-alias-border-l2);border-radius:5px;padding:2px 8px;white-space:nowrap}
+.ddup-dl:hover{background:var(--dsw-alias-bg-layer-1)}
 .ddup-sec{font-weight:600;font-size:11px;color:var(--dsw-alias-label-secondary);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em}
 .ddup-row2{display:flex;gap:10px;flex-wrap:wrap}
 .ddup-fig{flex:1;min-width:190px;margin:0}
 .ddup-fig img,.ddup-fig-full img{width:100%;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);display:block;background:var(--dsw-alias-bg-layer-2)}
 .ddup-figcap{font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:4px;text-align:center}
 .ddup-fig-full{margin:0}
+.ddup-overlay-stage{position:relative;width:100%;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);overflow:hidden;cursor:col-resize}
+.ddup-overlay-img{display:block;width:100%}
+.ddup-overlay-top{position:absolute;left:0;top:0}
+.ddup-overlay-ctl{display:flex;align-items:center;gap:8px;margin-top:6px}
+.ddup-seg{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:12px;padding:3px 10px;border-radius:6px}
+.ddup-seg.active{background:var(--dsw-alias-brand-primary);color:#fff;border-color:var(--dsw-alias-brand-primary)}
+.ddup-overlay-range{flex:1;accent-color:var(--dsw-alias-brand-primary)}
+.ddup-overlay-hint{font-size:11px;color:var(--dsw-alias-label-secondary);min-width:78px;text-align:right}
 `;
 
 		function readFile(file, cb, errCb) {
@@ -101,11 +121,63 @@ window.__ModuleLoader__.load({
 			);
 		}
 
-		function fig(src, label) {
+		function dl(src, name) {
+			return react.createElement("a", { href: src, download: name, className: "ddup-dl", title: "下载 PNG" }, "下载");
+		}
+
+		function sechead(title, dlNode) {
+			return react.createElement("div", { className: "ddup-sechead" },
+				react.createElement("span", { className: "ddup-sec" }, title),
+				dlNode || null
+			);
+		}
+
+		function fig(src, label, dlNode) {
 			return src ? react.createElement("figure", { className: "ddup-fig" },
 				react.createElement("img", { src: src }),
-				react.createElement("figcaption", { className: "ddup-figcap" }, "图 " + label)
+				react.createElement("figcaption", { className: "ddup-figcap" },
+					"图 " + label, dlNode ? " · " : null, dlNode)
 			) : null;
+		}
+
+		function Gauge(p) {
+			var thr = Math.max(1, p.threshold || 12);
+			var inl = p.inliers || 0;
+			var scale = Math.max(inl, thr) * 1.2;
+			var fillPct = Math.min(100, inl / scale * 100);
+			var markPct = Math.min(100, thr / scale * 100);
+			var ok = inl >= thr;
+			return react.createElement("div", { className: "ddup-gauge" },
+				react.createElement("div", { className: "ddup-gauge-track" },
+					react.createElement("div", { className: ok ? "ddup-gauge-fill ok" : "ddup-gauge-fill", style: { width: fillPct + "%" } }),
+					react.createElement("div", { className: "ddup-gauge-mark", style: { left: markPct + "%" } })
+				),
+				react.createElement("div", { className: "ddup-gauge-caps" },
+					react.createElement("span", null, "内点 " + inl),
+					react.createElement("span", null, "阈值 " + thr),
+					react.createElement("span", { className: ok ? "ddup-gauge-state ok" : "ddup-gauge-state" }, ok ? "达标" : "未达标")
+				)
+			);
+		}
+
+		function Overlay(p) {
+			var mode = react.useState("blend");
+			var pos = react.useState(50);
+			var topStyle = mode[0] === "wipe"
+				? { clipPath: "inset(0 " + (100 - pos[0]) + "% 0 0)" }
+				: { opacity: (pos[0] / 100).toFixed(2) };
+			return react.createElement("div", { className: "ddup-overlay" },
+				react.createElement("div", { className: "ddup-overlay-stage" },
+					react.createElement("img", { src: p.a, className: "ddup-overlay-img" }),
+					react.createElement("img", { src: p.b, className: "ddup-overlay-img ddup-overlay-top", style: topStyle })
+				),
+				react.createElement("div", { className: "ddup-overlay-ctl" },
+					react.createElement("button", { className: mode[0] === "blend" ? "ddup-seg active" : "ddup-seg", onClick: function () { mode[1]("blend"); } }, "混合"),
+					react.createElement("button", { className: mode[0] === "wipe" ? "ddup-seg active" : "ddup-seg", onClick: function () { mode[1]("wipe"); } }, "擦除"),
+					react.createElement("input", { type: "range", min: 0, max: 100, value: pos[0], onChange: function (e) { pos[1](parseInt(e.target.value, 10) || 0); }, className: "ddup-overlay-range" }),
+					react.createElement("span", { className: "ddup-overlay-hint" }, mode[0] === "blend" ? "透明度 " + pos[0] + "%" : "分界 " + pos[0] + "%")
+				)
+			);
 		}
 
 		function Result(p) {
@@ -113,6 +185,7 @@ window.__ModuleLoader__.load({
 			var im = r.images || {};
 			var ok = r.duplicate;
 			var ratio = r.inlier_ratio != null ? r.inlier_ratio.toFixed(2) : "—";
+			var hasOverlay = im.A_img && im.warpedB;
 			return react.createElement("div", { className: "ddup-result" },
 				react.createElement("div", { className: ok ? "ddup-banner" : "ddup-banner ddup-ok" },
 					react.createElement("span", { className: "ddup-banner-icon" }, ok ? "⚠" : "✓"),
@@ -127,13 +200,18 @@ window.__ModuleLoader__.load({
 					metric("内点比率", ratio),
 					metric("B 对齐", tfName(r.best_transform))
 				),
-				react.createElement("div", { className: "ddup-sec" }, "重复区域"),
+				react.createElement(Gauge, { inliers: r.inliers, threshold: r.threshold }),
+				hasOverlay ? react.createElement("div", null,
+					sechead("对齐叠加（B 已对齐到 A）", dl(im.overlay, "overlay.png")),
+					react.createElement(Overlay, { a: im.A_img, b: im.warpedB })
+				) : null,
+				sechead("重复区域", null),
 				react.createElement("div", { className: "ddup-row2" },
-					fig(im.regionA, "A"),
-					fig(im.regionB, "B")
+					fig(im.regionA, "A", dl(im.regionA, "region_A.png")),
+					fig(im.regionB, "B", dl(im.regionB, "region_B.png"))
 				),
 				im.matches ? react.createElement("div", null,
-					react.createElement("div", { className: "ddup-sec" }, "特征点匹配"),
+					sechead("特征点匹配", dl(im.matches, "matches.png")),
 					react.createElement("figure", { className: "ddup-fig-full" },
 						react.createElement("img", { src: im.matches }),
 						react.createElement("figcaption", { className: "ddup-figcap" }, "绿线 = 几何内点 · 红线 = 外点")
