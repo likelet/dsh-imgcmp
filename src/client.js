@@ -37,8 +37,10 @@ window.__ModuleLoader__.load({
 .ddup-file input{display:block;font-size:12px;max-width:100%;color:var(--dsw-alias-label-secondary)}
 .ddup-ctl{display:flex;align-items:center;gap:10px;margin:12px 0}
 .ddup-thr{width:64px;margin-left:6px;padding:5px 8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
-.ddup-btn{padding:7px 20px;border-radius:8px;border:none;background:var(--dsw-alias-brand-primary);color:#fff;cursor:pointer;font-size:13px;font-weight:600}
-.ddup-btn:disabled{opacity:.5;cursor:not-allowed}
+.ddup-btn{display:block;width:100%;padding:12px 20px;border-radius:10px;border:none;background:var(--dsw-alias-brand-primary);color:#fff;cursor:pointer;font-size:15px;font-weight:700;letter-spacing:.02em;box-shadow:0 2px 10px rgba(0,0,0,.2);transition:filter .15s ease,transform .06s ease,box-shadow .15s ease}
+.ddup-btn:hover:not(:disabled){filter:brightness(1.1);box-shadow:0 5px 16px rgba(0,0,0,.28)}
+.ddup-btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 1px 5px rgba(0,0,0,.2)}
+.ddup-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .ddup-err{color:var(--dsw-alias-state-error-primary);margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-state-error-primary)}
 .ddup-result{margin-top:6px}
 .ddup-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-left:4px solid var(--dsw-alias-state-error-primary)}
@@ -253,9 +255,9 @@ window.__ModuleLoader__.load({
 				),
 				react.createElement("div", { className: "ddup-ctl" },
 					react.createElement("label", null, "阈值 ",
-						react.createElement("input", { type: "number", min: 1, value: thr[0], onChange: function (e) { thr[1](e.target.value); }, className: "ddup-thr" })),
-					react.createElement("button", { className: "ddup-btn", onClick: run, disabled: busy[0] || !a[0] || !b[0] }, busy[0] ? "比对中…" : "查重")
+						react.createElement("input", { type: "number", min: 1, value: thr[0], onChange: function (e) { thr[1](e.target.value); }, className: "ddup-thr" }))
 				),
+				react.createElement("button", { className: "ddup-btn", onClick: run, disabled: busy[0] || !a[0] || !b[0], title: (!a[0] || !b[0]) ? "请先选择两张图片" : "开始比对" }, busy[0] ? "比对中…" : "🔍 开始查重")
 				err[0] ? react.createElement("div", { className: "ddup-err" }, err[0]) : null,
 				res[0] ? react.createElement(Result, { r: res[0] }) : null
 			);
