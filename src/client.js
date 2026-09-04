@@ -257,7 +257,7 @@ window.__ModuleLoader__.load({
 					react.createElement("label", null, "阈值 ",
 						react.createElement("input", { type: "number", min: 1, value: thr[0], onChange: function (e) { thr[1](e.target.value); }, className: "ddup-thr" }))
 				),
-				react.createElement("button", { className: "ddup-btn", onClick: run, disabled: busy[0] || !a[0] || !b[0], title: (!a[0] || !b[0]) ? "请先选择两张图片" : "开始比对" }, busy[0] ? "比对中…" : "🔍 开始查重")
+				react.createElement("button", { className: "ddup-btn", onClick: run, disabled: busy[0] || !a[0] || !b[0], title: (!a[0] || !b[0]) ? "请先选择两张图片" : "开始比对" }, busy[0] ? "比对中…" : "🔍 开始查重"),
 				err[0] ? react.createElement("div", { className: "ddup-err" }, err[0]) : null,
 				res[0] ? react.createElement(Result, { r: res[0] }) : null
 			);
