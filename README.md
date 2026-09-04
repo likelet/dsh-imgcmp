@@ -1,85 +1,103 @@
 # dsh-imgcmp
 
-DSH 插件：右下角悬浮窗「图片查重」。上传两张图，跑 SuperPoint 特征点 + RANSAC 几何校验，判断是否重复（支持翻转 / 旋转 / 拉伸），并标注重复区域。
+A [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deepseek-harness) plugin that adds a floating "image duplicate check" widget to the web UI.
 
-## 结构
+Upload two images and it verifies **whether one is a duplicate — or partial duplicate — of the other**, using **feature-point (SuperPoint) matching + RANSAC geometric verification**. It tolerates flips, 90°/180°/270° rotations, transpositions, and non-uniform stretching, and it **annotates the duplicated region** on both images so you can immediately see *where* the overlap is.
+
+This is aimed at suspected images: when you have two figures/panels that look alike and need to confirm they are the same source (e.g. duplicated Western blots, IHC, or microscopy images), it gives a geometric verdict plus a visual map of the matching area — convenient for locating exactly which region repeats.
+
+## Features
+
+- **Two-image upload** in a floating panel (bottom-right capsule button, dismissible with ×).
+- **Feature-point verification** — SuperPoint keypoints → descriptor matching → RANSAC homography.
+- **Robust to geometric edits** — tries the 8 dihedral (D4) orientations of image B (flip / rotate / transpose), and handles scale & non-uniform stretch.
+- **Locates the duplication** — returns three annotated images:
+  - `matches` — side-by-side keypoint correspondences (green = geometric inliers, red = outliers);
+  - `regionA` / `regionB` — the duplicated region polygon drawn on each image.
+- **Interpretable verdict** — geometric inlier count vs. an adjustable threshold (default 12).
+
+## How it works
+
+1. Each image is upscaled to at least 800px so small panels yield enough keypoints.
+2. SuperPoint extracts keypoints + descriptors (denser sampling via `detection_threshold=0.0001`).
+3. Descriptors are matched (mutual-nearest-neighbour with ratio test, or LightGlue when its weights are cached).
+4. For each of the 8 dihedral orientations of image B, a RANSAC homography is fitted; the orientation with the most **inliers** (matched points consistent within 3px) wins.
+5. If `inliers ≥ threshold`, the pair is reported as a duplicate, and the inlier region is drawn on both images.
+
+## Structure
 
 ```text
 dsh-imgcmp/
 ├── package.json     # name/version + exports + dsh.client
-├── src/index.js     # Node half：POST /api/dsh-imgcmp/compare
-├── src/client.js    # Client half：shell.overlay 悬浮窗 UI
-└── README.md
+├── src/index.js     # host half: POST /api/dsh-imgcmp/compare
+├── src/client.js    # client half: shell.overlay floating widget
+├── README.md
+└── LICENSE
 ```
 
-## 依赖（必须存在）
+## Dependencies (required)
 
-Host half 会执行：
+The host half shells out to a Python backend:
 
 ```sh
-cd /home/zhaoqi/zhaoqi/DSH/bioimg-dedup && .venv/bin/python compare_bridge.py
+cd <project> && .venv/bin/python compare_bridge.py
 ```
 
-复用前确保该目录里存在：
+The `<project>` directory must contain:
 
-- `.venv/`（torch 2.9.1+cu130、torchvision、kornia、PIL、numpy、cv2）
-- `compare_bridge.py`（stdin→stdout JSON 桥）
-- `src/lightglue_geo.py` + `src/lightglue_lite/`（SuperPoint）
-- SuperPoint 权重（`torch.hub` 缓存 `superpoint_v1.pth`）
-- GPU
+- `.venv/` — torch (2.9.x+cu130), torchvision, kornia, Pillow, numpy, opencv-python
+- `compare_bridge.py` — stdin→stdout JSON bridge
+- `src/lightglue_geo.py` + `src/lightglue_lite/` — SuperPoint implementation
+- SuperPoint weights (`superpoint_v1.pth` in the torch hub cache)
+- a CUDA-capable GPU
 
-换机器时把整个项目目录拷过去，并在 insert 行的 `config.project` 里指到新路径（默认 `DEFAULT_PROJECT` 见 `src/index.js`）。
+> **Publishing boundary**: the npm/git package ships only the JavaScript shell.
+> The Python backend (venv + weights + GPU) must be deployed separately and
+> pointed to via `config.project`.
 
-## 安装
+## Install
 
 ```sh
-# 前置：需要 pnpm（dsh plugin 用它管理 profile 插件）
+# prerequisite: pnpm (used by `dsh plugin` to manage profile plugins)
 npm install -g pnpm
 
-# 1) 安装包到 web profile
-dsh plugin --profile web add /home/zhaoqi/.dsh/dsh-plugins/plugins/dsh-imgcmp
+# install the package into the web profile
+dsh plugin --profile web add "github:likelet/dsh-imgcmp#main"
 
-# 2) 挂载 insert 行（二选一）
-#    a. 写入 profile patch：  $DSH_HOME/profiles/web/cordis.patch.yml
-#    b. 写入 --patch overlay：$DSH_HOME/web-remote.patch.yml
-#
-#    - insert:
-#        - id: imgcmp
-#          name: 'dsh-imgcmp'
-#          config:
-#            project: '/home/zhaoqi/zhaoqi/DSH/bioimg-dedup'
-#            timeoutMs: 180000
+# mount the insert row (either profile patch or --patch overlay):
+#   - insert:
+#       - id: imgcmp
+#         name: 'dsh-imgcmp'
+#         config:
+#           project: '/home/zhaoqi/zhaoqi/DSH/bioimg-dedup'
+#           timeoutMs: 180000
 
-# 3) 重启 web 使 Node half 生效（配置行 HMR 只覆盖已加载插件；新插件的 Node half 需重启）
-#    （本会话运行在该 web 进程内，重启会短暂断开，需重新连接）
+# restart the web process so the new Node half loads
 ```
 
-## 配置项
+## Config
 
-插件 insert 行 `config`（可移植，无需改代码）：
+Insert-row `config` (portable — no code changes needed):
 
-| 配置项 | 默认 | 说明 |
-|--------|------|------|
-| `project` | `/home/zhaoqi/zhaoqi/DSH/bioimg-dedup` | Python 项目根目录（`.venv/` + `compare_bridge.py` 所在） |
-| `timeoutMs` | `180000` | 单次比对的 shell 超时（毫秒） |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `project` | `/home/zhaoqi/zhaoqi/DSH/bioimg-dedup` | Python project root (contains `.venv/` + `compare_bridge.py`) |
+| `timeoutMs` | `180000` | Per-comparison shell timeout (ms) |
 
-Python 侧可调（在 `compare_bridge.py` → `src/lightglue_geo.py`）：
+Python-side tunables (in `compare_bridge.py` → `src/lightglue_geo.py`):
 
-- `threshold`（UI 里调）：内点判定阈值，默认 12。
-- `detection_threshold`：采样密度，越小点越多，当前 0.0001。
-- `max_kpts`：每图关键点上限，默认 2048。
+- `threshold` — inlier verdict threshold (UI-adjustable, default 12).
+- `detection_threshold` — sampling density, lower = denser keypoints (current 0.0001).
+- `max_kpts` — per-image keypoint cap (default 2048).
 
-## 发布形式
+## Distribution
 
-插件是「纯 cordis」形态（单 apply + insert 行），可选的发布方式：
+The plugin is a pure-cordis plugin (single `apply` + insert row). Options:
 
-1. **git 源（当前，推荐个人复用）**：`dsh plugin --profile web add "github:henlii/dsh-plugins#main&path:/plugins/dsh-imgcmp"`，带版本、可回退；
-2. **npm 发布（对外分享）**：在 `plugins/dsh-imgcmp/` 里 `npm publish` 后 `dsh plugin add dsh-imgcmp`——但 Python 后端（bioimg-dedup 项目 + venv + GPU）仍需单独分发并配 `config.project`；
-3. **集合 patch（随 dsh-plugins 一次性安装）**：`dsh web --patch .../dsh-plugins/cordis.patch.yml` 挂载全部插件；
-4. **bundle 形态**：如需把「insert 行 + 配置」打包成层栈随包分发，可改造成 `dsh.bundle.patch`（重启生效）。
-
-因为插件依赖本机的 Python venv + GPU，**发布边界是 JS 壳**；计算后端永远需要 bioimg-dedup 项目在场。
+1. **Git source (recommended)** — `dsh plugin --profile web add "github:likelet/dsh-imgcmp#main"`.
+2. **npm** — `npm publish` in this directory, then `dsh plugin add dsh-imgcmp` (the Python backend still needs separate deployment).
+3. **Collection patch** — include the insert row in a `cordis.patch.yml` (e.g. the `dsh-plugins` collection).
 
 ## License
 
-MIT
+[MIT](LICENSE) © 2026 likelet

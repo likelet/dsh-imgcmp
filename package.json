@@ -1,7 +1,7 @@
 {
   "name": "dsh-imgcmp",
   "version": "0.1.0",
-  "description": "DSH plugin: floating two-image duplicate checker (SuperPoint + RANSAC geometric verification with flip/rotate/stretch handling).",
+  "description": "DSH plugin: verify suspected image duplication via SuperPoint feature matching + RANSAC geometric verification (flip/rotate/stretch tolerant), and annotate the duplicated region to locate the overlap.",
   "type": "module",
   "main": "src/index.js",
   "exports": {
