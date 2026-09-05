@@ -62,7 +62,7 @@ async function compare(ctx, req, res, project, timeoutMs) {
     workdir: project,
     timeoutMs: timeoutMs,
     stdoutMaxBytes: MAX_STDOUT_BYTES,
-    stdin: JSON.stringify({ a, b, threshold }),
+    stdin: JSON.stringify({ a, b, threshold, partial: !!body.partial }),
   });
   const result = await shell.run(spec);
   if (result.exitCode !== 0) {

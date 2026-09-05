@@ -80,6 +80,12 @@ window.__ModuleLoader__.load({
 .ddup-seg.active{background:var(--dsw-alias-brand-primary);color:#fff;border-color:var(--dsw-alias-brand-primary)}
 .ddup-overlay-range{flex:1;accent-color:var(--dsw-alias-brand-primary)}
 .ddup-overlay-hint{font-size:11px;color:var(--dsw-alias-label-secondary);min-width:78px;text-align:right}
+.ddup-adv{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary);margin:0 0 10px;cursor:pointer}
+.ddup-adv input{accent-color:var(--dsw-alias-brand-primary)}
+.ddup-partial-summary{font-size:12px;color:var(--dsw-alias-label-secondary);margin:8px 0 4px}
+.ddup-partial-list{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.ddup-partial-item{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:6px;padding:5px 10px}
+.ddup-partial-idx{font-weight:700;color:var(--dsw-alias-state-success-primary)}
 `;
 
 		function readFile(file, cb, errCb) {
@@ -95,11 +101,11 @@ window.__ModuleLoader__.load({
 		};
 		function tfName(t) { return TFM[t] || (t || "—"); }
 
-		async function compareImages(a, b, threshold) {
+		async function compareImages(a, b, threshold, partial) {
 			const res = await fetch("/api/dsh-imgcmp/compare", {
 				method: "POST",
 				headers: { "content-type": "application/json" },
-				body: JSON.stringify({ a, b, threshold }),
+				body: JSON.stringify({ a, b, threshold, partial: !!partial }),
 			});
 			const data = await res.json().catch(() => null);
 			if (!res.ok || data === null || data.error) {
@@ -183,6 +189,32 @@ window.__ModuleLoader__.load({
 			);
 		}
 
+		function PartialSection(p) {
+			var part = p.partial || {};
+			var ms = part.matches || [];
+			return react.createElement("div", null,
+				sechead("部分相似（滑动切割）", part.map ? dl(part.map, "partial_map.png") : null),
+				part.map ? react.createElement("figure", { className: "ddup-fig-full" },
+					react.createElement("img", { src: part.map }),
+					react.createElement("figcaption", { className: "ddup-figcap" }, "绿色块 = 在 B 中找到相似内容的区域（块阈值 " + part.tileThreshold + "）")
+				) : null,
+				react.createElement("div", { className: "ddup-partial-summary" },
+					ms.length > 0 ? ("找到 " + ms.length + " 处疑似部分相似区域") : "未找到部分相似区域"
+				),
+				ms.length > 0 ? react.createElement("div", { className: "ddup-partial-list" },
+					ms.map(function (m, i) {
+						var b = m.box.map(function (v) { return Math.round(v); });
+						return react.createElement("div", { key: i, className: "ddup-partial-item" },
+							react.createElement("span", { className: "ddup-partial-idx" }, "#" + (i + 1)),
+							react.createElement("span", null, "[" + b[0] + "," + b[1] + "]–[" + b[2] + "," + b[3] + "]"),
+							react.createElement("span", null, "内点 " + m.inliers),
+							react.createElement("span", null, tfName(m.transform))
+						);
+					})
+				) : null
+			);
+		}
+
 		function Result(p) {
 			var r = p.r;
 			var im = r.images || {};
@@ -219,7 +251,8 @@ window.__ModuleLoader__.load({
 						react.createElement("img", { src: im.matches }),
 						react.createElement("figcaption", { className: "ddup-figcap" }, "绿线 = 几何内点 · 红线 = 外点")
 					)
-				) : null
+				) : null,
+				r.partial ? react.createElement(PartialSection, { partial: r.partial }) : null
 			);
 		}
 
@@ -230,6 +263,7 @@ window.__ModuleLoader__.load({
 			var busy = react.useState(false);
 			var err = react.useState(null);
 			var res = react.useState(null);
+			var partial = react.useState(false);
 
 			var pick = function (setV, setN) {
 				return function (ev) {
@@ -243,7 +277,7 @@ window.__ModuleLoader__.load({
 			var run = function () {
 				if (!a[0] || !b[0]) { err[1]("请先选择两张图片"); return; }
 				busy[1](true); err[1](null); res[1](null);
-				compareImages(a[0], b[0], parseInt(thr[0], 10) || 12)
+				compareImages(a[0], b[0], parseInt(thr[0], 10) || 12, partial[0])
 					.then(function (r) { res[1](r); busy[1](false); })
 					.catch(function (e) { err[1](String(e && e.message ? e.message : e)); busy[1](false); });
 			};
@@ -259,6 +293,9 @@ window.__ModuleLoader__.load({
 						react.createElement("input", { type: "number", min: 1, value: thr[0], onChange: function (e) { thr[1](e.target.value); }, className: "ddup-thr" })),
 					react.createElement("button", { className: "ddup-btn", onClick: run, disabled: busy[0] || !a[0] || !b[0], title: (!a[0] || !b[0]) ? "请先选择两张图片" : "开始比对" }, busy[0] ? "比对中…" : "🔍 开始查重")
 				),
+				react.createElement("label", { className: "ddup-adv" },
+					react.createElement("input", { type: "checkbox", checked: partial[0], onChange: function (e) { partial[1](e.target.checked); } }),
+					"高级：滑动切割，查找两张图内的部分相似"),
 				err[0] ? react.createElement("div", { className: "ddup-err" }, err[0]) : null,
 				res[0] ? react.createElement(Result, { r: res[0] }) : null
 			);
